@@ -268,6 +268,83 @@ export function validateUrl(raw) {
 }
 
 // ============================================================
+// § API
+// ============================================================
+
+export async function fetchJudge(url, mode, signal) {
+  const response = await fetch("/api/judge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, mode }),
+    signal,
+  });
+
+  const dataSource = response.headers.get("X-RepoJudge-Data-Source") ?? "live";
+
+  if (!response.ok) {
+    let errorText = "Evaluation failed.";
+    let retryAfter = null;
+    try {
+      const body = await response.json();
+      if (body && typeof body.error === "string") {
+        errorText = body.error;
+      }
+    } catch {
+      errorText = `Request failed (HTTP ${response.status}).`;
+    }
+    if (response.status === 429) {
+      retryAfter = response.headers.get("Retry-After");
+    }
+    const err = new Error(errorText);
+    err.status = response.status;
+    err.retryAfter = retryAfter;
+    throw err;
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Server returned an unreadable response.");
+  }
+
+  return { scorecard: data, dataSource };
+}
+
+export function showError(message, retryAfter = null) {
+  const msgEl = qs("#error-message");
+  const retryHint = qs("#retry-after-hint");
+
+  if (msgEl) msgEl.textContent = String(message);
+
+  if (retryHint) {
+    if (retryAfter) {
+      retryHint.textContent = `Please wait ${retryAfter} second(s) before retrying.`;
+      retryHint.style.display = "";
+    } else {
+      retryHint.textContent = "";
+      retryHint.style.display = "none";
+    }
+  }
+
+  setState("error");
+
+  const errorHeading = qs("#error-heading");
+  if (errorHeading) {
+    errorHeading.focus();
+    errorHeading.setAttribute("tabindex", "-1");
+  }
+
+  announceStatus(`Error: ${String(message)}`);
+}
+
+let _currentAbortController = null;
+let _lastScorecard = null;
+
+export function getLastScorecard() { return _lastScorecard; }
+export function setLastScorecard(sc) { _lastScorecard = sc; }
+
+// ============================================================
 // § INPUT PANEL & SAMPLE LINKS
 // ============================================================
 
@@ -275,6 +352,8 @@ export function initInputPanel() {
   const form       = qs("#judge-form");
   const urlInput   = qs("#repo-url");
   const feedback   = qs("#url-feedback");
+  const analyzeBtn = qs("#analyze-btn");
+  const modeInputs = qsa("input[name='mode']");
 
   if (!form || !urlInput) return;
 
@@ -308,6 +387,66 @@ export function initInputPanel() {
   urlInput.addEventListener("blur", () => {
     if (urlInput.value.trim() === "") {
       clearFeedback();
+    }
+  });
+
+  // Form submit
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (getState() === "loading") return;
+
+    const rawUrl = urlInput.value.trim();
+    const { ok, message } = validateUrl(rawUrl);
+    if (!ok) {
+      showFeedback(message, false);
+      urlInput.setAttribute("aria-invalid", "true");
+      urlInput.focus();
+      return;
+    }
+
+    clearFeedback();
+    urlInput.setAttribute("aria-invalid", "false");
+
+    const selectedMode = modeInputs.find((r) => r.checked)?.value ?? "rules";
+    _currentMode = selectedMode;
+    updateNavMode(_currentMode);
+
+    if (_currentAbortController) {
+      _currentAbortController.abort();
+    }
+    _currentAbortController = new AbortController();
+    const signal = _currentAbortController.signal;
+
+    if (analyzeBtn) analyzeBtn.disabled = true;
+    setState("loading");
+
+    const clientTimeout = setTimeout(() => {
+      _currentAbortController?.abort();
+    }, CLIENT_TIMEOUT_MS);
+
+    try {
+      const { scorecard, dataSource } = await fetchJudge(rawUrl, selectedMode, signal);
+      clearTimeout(clientTimeout);
+
+      _lastScorecard = scorecard;
+      setState("success");
+      if (typeof window.__renderResultsHook === "function") {
+        window.__renderResultsHook(scorecard, dataSource);
+      }
+    } catch (err) {
+      clearTimeout(clientTimeout);
+
+      if (err.name === "AbortError") {
+        showError("Request was cancelled or timed out. Please retry.");
+        return;
+      }
+
+      const msg = err.message ?? "Evaluation failed.";
+      const retryAfter = err.retryAfter ?? null;
+      showError(msg, retryAfter);
+    } finally {
+      if (analyzeBtn) analyzeBtn.disabled = false;
     }
   });
 
