@@ -29,7 +29,8 @@ export function mergeScorecard(
   rules: RuleCheck[],
   verdicts: GemmaVerdict[],
   mode: "rules" | "rules+gemma",
-  unscored?: CriterionId[]
+  unscored?: CriterionId[],
+  servedBy?: string | null
 ): Scorecard {
   const repo = `${snap.owner}/${snap.name}`;
   const generatedAt = new Date().toISOString();
@@ -57,6 +58,12 @@ export function mergeScorecard(
   }
 
   // mode === "rules+gemma"
+  if (verdicts.length > 0 && !servedBy) {
+    throw new Error(
+      "servedBy required in rules+gemma mode when verdicts exist"
+    );
+  }
+
   const verdictMap = new Map<CriterionId, GemmaVerdict>();
   for (const verdict of verdicts) {
     verdictMap.set(verdict.criterion, verdict);
@@ -86,10 +93,13 @@ export function mergeScorecard(
     total = Math.round(sum * 10) / 10;
   }
 
-  const model = {
-    name: process.env.GEMMA_MODEL ?? "unknown",
-    openWeight: true as const,
-  };
+  const model = servedBy
+    ? {
+        name: process.env.GEMMA_MODEL ?? "unknown",
+        servedBy,
+        openWeight: true as const,
+      }
+    : null;
 
   const scorecard: Scorecard = {
     repo,

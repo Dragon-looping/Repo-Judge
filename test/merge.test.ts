@@ -58,7 +58,8 @@ describe("mergeScorecard", () => {
       rules,
       partialVerdicts,
       "rules+gemma",
-      ["clear_problem"]
+      ["clear_problem"],
+      "gemma-test"
     );
 
     expect(scorecard.mode).toBe("rules+gemma");
@@ -67,6 +68,7 @@ describe("mergeScorecard", () => {
     expect(scorecard.unscored).toContain("clear_problem");
     expect(scorecard.model).toEqual({
       name: process.env.GEMMA_MODEL ?? "unknown",
+      servedBy: "gemma-test",
       openWeight: true,
     });
 
@@ -78,7 +80,14 @@ describe("mergeScorecard", () => {
     process.env.GEMMA_MODEL = "gemma-4-test";
 
     try {
-      const scorecard = mergeScorecard(snap, rules, fullVerdicts, "rules+gemma");
+      const scorecard = mergeScorecard(
+        snap,
+        rules,
+        fullVerdicts,
+        "rules+gemma",
+        [],
+        "gemma-4-test-001"
+      );
 
       expect(scorecard.mode).toBe("rules+gemma");
       expect(scorecard.unscored).toEqual([]);
@@ -86,12 +95,33 @@ describe("mergeScorecard", () => {
       expect(scorecard.total).toBeGreaterThan(0);
       expect(scorecard.model).toEqual({
         name: "gemma-4-test",
+        servedBy: "gemma-4-test-001",
         openWeight: true,
       });
 
       expect(() => Scorecard.parse(scorecard)).not.toThrow();
     } finally {
-      process.env.GEMMA_MODEL = prevEnv;
+      if (prevEnv === undefined) {
+        delete process.env.GEMMA_MODEL;
+      } else {
+        process.env.GEMMA_MODEL = prevEnv;
+      }
     }
+  });
+
+  it("throws when verdicts exist but servedBy is null in rules+gemma mode", () => {
+    expect(() =>
+      mergeScorecard(snap, rules, fullVerdicts, "rules+gemma", [], null)
+    ).toThrow(/servedBy required/);
+  });
+
+  it("handles rules+gemma with zero verdicts and null servedBy: model null, total null, all criteria unscored", () => {
+    const scorecard = mergeScorecard(snap, rules, [], "rules+gemma", [], null);
+
+    expect(scorecard.model).toBeNull();
+    expect(scorecard.total).toBeNull();
+    expect(scorecard.unscored).toEqual(CriterionId.options);
+
+    expect(() => Scorecard.parse(scorecard)).not.toThrow();
   });
 });
