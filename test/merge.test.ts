@@ -76,7 +76,7 @@ describe("mergeScorecard", () => {
   });
 
   it("handles mode 'rules+gemma' with complete verdicts: calculates combined numeric total", () => {
-    const prevEnv = process.env.GEMMA_MODEL;
+    const prevModel = process.env.GEMMA_MODEL;
     process.env.GEMMA_MODEL = "gemma-4-test";
 
     try {
@@ -101,10 +101,10 @@ describe("mergeScorecard", () => {
 
       expect(() => Scorecard.parse(scorecard)).not.toThrow();
     } finally {
-      if (prevEnv === undefined) {
+      if (prevModel === undefined) {
         delete process.env.GEMMA_MODEL;
       } else {
-        process.env.GEMMA_MODEL = prevEnv;
+        process.env.GEMMA_MODEL = prevModel;
       }
     }
   });
