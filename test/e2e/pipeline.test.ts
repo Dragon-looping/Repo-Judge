@@ -64,7 +64,7 @@ describe("E2E Rules Pipeline", () => {
       suggestion: "No improvements needed.",
     }));
 
-    const scorecard = mergeScorecard(goodSnapshot, rules, fiveVerdicts, "rules+gemma");
+    const scorecard = mergeScorecard(goodSnapshot, rules, fiveVerdicts, "rules+gemma", [], "gemma-test");
 
     expect(() => Scorecard.parse(scorecard)).not.toThrow();
     expect(scorecard.mode).toBe("rules+gemma");
@@ -73,6 +73,7 @@ describe("E2E Rules Pipeline", () => {
     expect(scorecard.model).not.toBeNull();
     expect(typeof scorecard.model?.name).toBe("string");
     expect(typeof scorecard.model?.servedBy).toBe("string");
+    expect(scorecard.model?.servedBy).toBe("gemma-test");
     expect(scorecard.model?.openWeight).toBe(true);
   });
 });
