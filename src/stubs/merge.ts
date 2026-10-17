@@ -70,6 +70,7 @@ export function mergeScorecard(
     mode === "rules+gemma"
       ? {
           name: "gemma-stub (demo data, not a live model)",
+          servedBy: "stub",
           openWeight: true as const,
         }
       : null;

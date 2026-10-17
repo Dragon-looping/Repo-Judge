@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { Server } from "http";
+import fs from "fs";
 import { createApp, type Deps } from "../../src/server.js";
 import { Scorecard, type RepoSnapshot, type RuleCheck, type GemmaVerdict } from "../../src/schema.js";
 
@@ -128,11 +129,13 @@ describe("RepoJudge Server API", () => {
 
   // ---- GET /model-card ----------------------------------------
   it("GET /model-card handles missing file gracefully with 404 { error: string }", async () => {
+    vi.spyOn(fs, "readFileSync").mockImplementationOnce(() => {
+      throw new Error("ENOENT: no such file or directory");
+    });
     const { server, url } = await startTestServer();
     activeServers.push(server);
 
     const res = await fetch(`${url}/model-card`);
-    // MODEL_CARD.md is not currently in repository root, so expect 404 { error }
     expect(res.status).toBe(404);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body).toHaveProperty("error");
@@ -346,7 +349,7 @@ describe("RepoJudge Server API", () => {
         verdicts,
         unscored: ["submission"],
         total: null,
-        model: { name: "gemma-test", openWeight: true },
+        model: { name: "gemma-test", servedBy: "gemma-test", openWeight: true as const },
         generatedAt: new Date().toISOString(),
       }));
 
