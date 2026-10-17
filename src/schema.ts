@@ -48,7 +48,11 @@ export const Scorecard = z.object({
   verdicts: z.array(GemmaVerdict),
   unscored: z.array(CriterionId),
   total: z.number().nullable(),
-  model: z.object({ name: z.string(), openWeight: z.literal(true) }).nullable(),
+  model: z.object({
+  name: z.string(),
+  servedBy: z.string(),
+  openWeight: z.literal(true),
+}).nullable(),
   generatedAt: z.string(),
 });
 
