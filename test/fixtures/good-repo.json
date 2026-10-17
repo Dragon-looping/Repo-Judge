@@ -1,0 +1,30 @@
+{
+  "url": "https://github.com/hackathon-team/good-repo",
+  "owner": "hackathon-team",
+  "name": "good-repo",
+  "isPublic": true,
+  "license": "MIT",
+  "readme": "# Good Repo\n\n## Problem Statement\nTraditional hackathon judging is manual, slow, and subjective. This project automates repo evaluations.\n\n## Setup\nRun `npm install` and `npm test` to install dependencies and run the test suite.\n\n## Demo\nWatch the full walkthrough demonstration video showing scoring and criteria analysis.\n\n## Team\nBuilt by Alice, Bob, Charlie, and Dave.\n\n## Code of Conduct\nWe follow the MLH Code of Conduct: https://github.com/MLH/mlh-policies/blob/main/code-of-conduct.md\n\nBuilt with open-weight Gemma 4 judge model.\n",
+  "fileTree": [
+    ".github/workflows/ci.yml",
+    "README.md",
+    "LICENSE",
+    "CODE_OF_CONDUCT.md",
+    "MODEL_CARD.md",
+    "package.json",
+    "src/index.ts",
+    "test/index.test.ts"
+  ],
+  "commitCount": 44,
+  "contributors": [
+    { "login": "alice", "commits": 11 },
+    { "login": "bob", "commits": 11 },
+    { "login": "charlie", "commits": 11 },
+    { "login": "dave", "commits": 11 }
+  ],
+  "hasCI": true,
+  "hasTests": true,
+  "hasCodeOfConduct": true,
+  "linksMlhCoc": true,
+  "fetchedAt": "2026-10-17T12:00:00.000Z"
+}
