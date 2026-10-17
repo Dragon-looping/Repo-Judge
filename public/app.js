@@ -406,9 +406,262 @@ export function buildCriterionCard(criterionId, rules, verdict, mode) {
   }
 
   body.appendChild(rulesSection);
+
+  // Gemma verdict section
+  const gemmaSection = h("div", { class: "criterion-section" });
+  const gemmaLabel = h("div", { class: "criterion-section__label" });
+  gemmaLabel.textContent = "Gemma 4 assessment (AI, advisory)";
+
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  dot.setAttribute("width", "8");
+  dot.setAttribute("height", "8");
+  dot.setAttribute("viewBox", "0 0 8 8");
+  dot.setAttribute("aria-hidden", "true");
+  const dotCirc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  dotCirc.setAttribute("cx", "4");
+  dotCirc.setAttribute("cy", "4");
+  dotCirc.setAttribute("r", "3");
+  dotCirc.setAttribute("fill", "#7c5cff");
+  dot.appendChild(dotCirc);
+  gemmaLabel.insertBefore(dot, gemmaLabel.firstChild);
+  gemmaSection.appendChild(gemmaLabel);
+
+  if (mode === "rules") {
+    const note = h("div", { class: "verdict-rules-only" });
+    note.textContent = "Not evaluated in Rules Only mode — no AI call was made.";
+    gemmaSection.appendChild(note);
+  } else if (!verdict) {
+    const unscored = h("div", { class: "verdict-unscored" });
+    const warnIcon = makeWarnIcon();
+    const warnText = h("span");
+    warnText.textContent = "Not scored — this criterion was not returned by the model.";
+    unscored.appendChild(warnIcon);
+    unscored.appendChild(warnText);
+    gemmaSection.appendChild(unscored);
+  } else {
+    const verdictWrap = h("div", { class: "verdict-wrap" });
+    const verdictHeader = h("div", { class: "verdict-header" });
+
+    const ring = buildScoreRing(verdict.score);
+    verdictHeader.appendChild(ring);
+
+    const verdictInfo = h("div", { class: "flex flex-col gap-2" });
+
+    const reasoningEl = h("p", { class: "evidence-text" });
+    reasoningEl.textContent = verdict.reasoning;
+    const reasoningPanel = buildEvidencePanel("Reasoning", reasoningEl);
+    verdictInfo.appendChild(reasoningPanel);
+
+    if (verdict.evidence && verdict.evidence.length > 0) {
+      const evList = h("ul", { class: "evidence-list" });
+      for (const ev of verdict.evidence) {
+        const li = h("li", { class: "evidence-list__item" });
+        li.textContent = ev;
+        evList.appendChild(li);
+      }
+      const evPanel = buildEvidencePanel(`Evidence (${verdict.evidence.length})`, evList);
+      verdictInfo.appendChild(evPanel);
+    }
+
+    if (verdict.suggestion) {
+      const sugPanel = buildEvidencePanel("Suggestion", (() => {
+        const s = h("p", { class: "suggestion-text" });
+        s.textContent = verdict.suggestion;
+        return s;
+      })());
+      verdictInfo.appendChild(sugPanel);
+    }
+
+    verdictHeader.appendChild(verdictInfo);
+    verdictWrap.appendChild(verdictHeader);
+    gemmaSection.appendChild(verdictWrap);
+  }
+
+  body.appendChild(gemmaSection);
   card.appendChild(body);
 
   return card;
+}
+
+export function makeWarnIcon() {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "verdict-unscored__icon");
+  svg.setAttribute("width", "16");
+  svg.setAttribute("height", "16");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "#f59e0b");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", "M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z");
+  const l1 = document.createElementNS(ns, "line");
+  l1.setAttribute("x1", "12"); l1.setAttribute("y1", "9");
+  l1.setAttribute("x2", "12"); l1.setAttribute("y2", "13");
+  const l2 = document.createElementNS(ns, "line");
+  l2.setAttribute("x1", "12"); l2.setAttribute("y1", "17");
+  l2.setAttribute("x2", "12.01"); l2.setAttribute("y2", "17");
+  svg.appendChild(path);
+  svg.appendChild(l1);
+  svg.appendChild(l2);
+  return svg;
+}
+
+export function buildScoreRing(score) {
+  const RADIUS = 26;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const pct = Math.max(0, Math.min(5, score)) / 5;
+  const offset = CIRC * (1 - pct);
+
+  const colors = ["#ef4444","#f97316","#eab308","#84cc16","#22c55e","#5ce1ff"];
+  const color = colors[Math.max(0, Math.min(5, Math.round(score)))] ?? "#9aa4c0";
+
+  const wrap = h("div", {
+    class: "score-ring-wrap",
+    "aria-label": `Score: ${score} out of 5`,
+    role: "img",
+  });
+
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "score-ring");
+  svg.setAttribute("viewBox", "0 0 64 64");
+  svg.setAttribute("width", "64");
+  svg.setAttribute("height", "64");
+  svg.setAttribute("aria-hidden", "true");
+
+  const track = document.createElementNS(ns, "circle");
+  track.setAttribute("class", "score-ring__track");
+  track.setAttribute("cx", "32");
+  track.setAttribute("cy", "32");
+  track.setAttribute("r", String(RADIUS));
+  svg.appendChild(track);
+
+  const fill = document.createElementNS(ns, "circle");
+  fill.setAttribute("class", "score-ring__fill");
+  fill.setAttribute("cx", "32");
+  fill.setAttribute("cy", "32");
+  fill.setAttribute("r", String(RADIUS));
+  fill.setAttribute("stroke-dasharray", String(CIRC));
+  fill.setAttribute("stroke-dashoffset", String(CIRC));
+  fill.setAttribute("stroke", color);
+  svg.appendChild(fill);
+
+  wrap.appendChild(svg);
+
+  const textWrap = h("div", { class: "score-ring__text", "aria-hidden": "true" });
+  textWrap.textContent = String(score);
+  wrap.appendChild(textWrap);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fill.style.transition = "stroke-dashoffset 600ms cubic-bezier(0.16, 1, 0.3, 1)";
+      fill.setAttribute("stroke-dashoffset", String(offset));
+    });
+  });
+
+  return wrap;
+}
+
+export function buildPlainTextSummary(scorecard) {
+  const { repo, mode, rules, verdicts, unscored, total, generatedAt } = scorecard;
+  const lines = [
+    "RepoJudge Evaluation Summary",
+    "============================",
+    `Repository: ${repo}`,
+    `Mode: ${mode}`,
+    `Generated: ${generatedAt}`,
+    "",
+    "Rules",
+    "-----",
+  ];
+
+  for (const rule of rules) {
+    lines.push(`[${rule.pass ? "PASS" : "FAIL"}] ${rule.id} (${rule.criterion}): ${rule.evidence}`);
+  }
+
+  const passCount = rules.filter((r) => r.pass).length;
+  lines.push(`\nResult: ${passCount} of ${rules.length} rules passed`);
+
+  if (mode === "rules+gemma" && verdicts && verdicts.length > 0) {
+    lines.push("\nGemma 4 Verdicts (advisory)", "-".repeat(28));
+    for (const v of verdicts) {
+      lines.push(`[${v.criterion}] Score: ${v.score}/5`);
+      lines.push(`  Reasoning: ${v.reasoning}`);
+      if (v.suggestion) lines.push(`  Suggestion: ${v.suggestion}`);
+    }
+  }
+
+  if (unscored && unscored.length > 0) {
+    lines.push(`\nNot scored: ${unscored.join(", ")}`);
+  }
+
+  if (total !== null && typeof total === "number" && isFinite(total)) {
+    lines.push(`\nTotal: ${total}`);
+  } else if (mode === "rules+gemma") {
+    lines.push("\nTotal: unavailable (some criteria not scored)");
+  }
+
+  lines.push("\nJudge model: Gemma 4 (open-weight). No closed models used.");
+  return lines.join("\n");
+}
+
+export function initCopyButton() {
+  const btn = qs("#copy-btn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    if (!_lastScorecard) return;
+    const text = buildPlainTextSummary(_lastScorecard);
+
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "✓ Copied!";
+      announceCopy("Summary copied to clipboard.");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      ta.style.top = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand("copy");
+        btn.textContent = "✓ Copied!";
+        announceCopy("Summary copied to clipboard.");
+      } catch {
+        btn.textContent = "Copy failed";
+        announceCopy("Could not copy. Please select and copy manually.");
+      }
+      document.body.removeChild(ta);
+    }
+
+    setTimeout(() => {
+      btn.textContent = "";
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("width", "14"); icon.setAttribute("height", "14");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("fill", "none");
+      icon.setAttribute("stroke", "currentColor");
+      icon.setAttribute("stroke-width", "2");
+      icon.setAttribute("stroke-linecap", "round");
+      icon.setAttribute("aria-hidden", "true");
+      const r1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      r1.setAttribute("x", "9"); r1.setAttribute("y", "9");
+      r1.setAttribute("width", "13"); r1.setAttribute("height", "13");
+      r1.setAttribute("rx", "2"); r1.setAttribute("ry", "2");
+      const pth = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pth.setAttribute("d", "M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1");
+      icon.appendChild(r1);
+      icon.appendChild(pth);
+      btn.appendChild(icon);
+      btn.appendChild(document.createTextNode(" Copy summary"));
+    }, 2000);
+  });
 }
 
 // ============================================================
@@ -1060,6 +1313,8 @@ if (typeof globalThis !== "undefined") {
     buildCriterionCard,
     buildEvidencePanel,
     makeCheckOrXIcon,
+    buildScoreRing,
+    buildPlainTextSummary,
   };
 }
 
@@ -1074,6 +1329,7 @@ function init() {
   initInputPanel();
   initModeSelector();
   initResetButtons();
+  initCopyButton();
   initHeroGlow();
   initMagneticButton();
   startOrbit();
