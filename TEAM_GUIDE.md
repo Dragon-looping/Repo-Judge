@@ -1,6 +1,6 @@
-# RepoJudge: Team Guide
+# RepoJudge: Team Guide (4 people)
 
-Team of 5. Deadline: **today 3:45 PM**. This file explains the project, each person's role, and the exact prompts to give Claude so Claude writes a ready-to-use prompt for **Antigravity** (your coding agent). Paste the Claude output into Antigravity.
+Team of 4. Deadline: **today 3:45 PM**. This file explains the project, each person's role, and the exact prompts to give Claude so Claude writes a ready-to-use prompt for **Antigravity** (your coding agent). Paste the Claude output into Antigravity.
 
 ---
 
@@ -61,7 +61,20 @@ repojudge/
 
 ---
 
-## 2. Shared contract: `src/schema.ts`
+## 2. The 4 roles at a glance
+
+| Person | Branch | Owns | Also |
+|---|---|---|---|
+| **1. Lead** | `main` then `feat/ingest` | skeleton, `schema.ts`, docs, `src/ingest/`, fixtures | reviews and merges all PRs, submission form |
+| **2. Rules** | `feat/rules` | `src/rules/`, `src/merge.ts`, CI workflow | |
+| **3. Judge** | `feat/judge` | `src/judge/` | |
+| **4. UI** | `feat/ui` | `src/server.ts`, `public/`, `demo/DEMO.md` | demo and Q&A lead |
+
+The Lead wears two hats: first the skeleton (fast, so others can start), then ingest.
+
+---
+
+## 3. Shared contract: `src/schema.ts`
 
 Lead commits this first. Everyone codes against it. Nobody else edits it. If a type must change, tell the lead.
 
@@ -123,17 +136,17 @@ export const Scorecard = z.object({
 
 ---
 
-## 3. Git workflow
+## 4. Git workflow
 
 ```text
-main          lead: schema, docs, license, CoC, submission
-feat/ingest   Person A
-feat/rules    Person B
-feat/judge    Person C
-feat/ui       Person D
+main          Lead: skeleton, schema, docs, license, CoC, submission
+feat/ingest   Lead (second hat)
+feat/rules    Person 2
+feat/judge    Person 3
+feat/ui       Person 4
 ```
 
-Lead first:
+Lead first (target: done by 11:25):
 
 ```bash
 git checkout main
@@ -151,20 +164,21 @@ git checkout -b feat/<your-branch>
 Rules:
 
 - Touch only your own folder.
-- Small commits, push often. Visible history from all 5 people counts for the collaboration criterion.
+- Small commits, push often. Visible history from all 4 people counts for the collaboration criterion.
 - Run `npm test` before opening a PR.
-- Merge order: A, then B, then C, then D.
+- Merge order: ingest, then rules, then judge, then ui.
 - Never commit secrets. Only `.env.example`.
+- Until ingest merges, others use inline fake snapshots in their tests. Lead pushes fixtures early so they can switch.
 
 ---
 
-## 4. How to use the prompts below
+## 5. How to use the prompts below
 
 Each person does this:
 
 1. Open Claude.
-2. Paste the **Shared context block** (section 5).
-3. Paste **your own meta-prompt** (section 6 to 10).
+2. Paste the **Shared context block** (section 6).
+3. Paste **your own meta-prompt** (sections 7 to 10).
 4. Claude outputs one detailed prompt. Copy it.
 5. Paste that prompt into Antigravity on your branch.
 6. Read the generated code. Run `npm test`. Fix what is wrong. Commit.
@@ -173,10 +187,10 @@ Do not trust generated code blindly. Always run it.
 
 ---
 
-## 5. Shared context block (everyone pastes this into Claude first)
+## 6. Shared context block (everyone pastes this into Claude first)
 
 ```text
-I am part of a 5-person hackathon team building RepoJudge for an open-source AI challenge.
+I am part of a 4-person hackathon team building RepoJudge for an open-source AI challenge.
 
 RepoJudge: takes a public GitHub repo URL, builds a RepoSnapshot, runs deterministic rule checks, optionally asks Gemma 4 (open-weight) to score 6 criteria, and returns a Scorecard shown in a web UI.
 
@@ -198,23 +212,52 @@ My job is to use Antigravity (an AI coding agent IDE) to build my part. I want Y
 
 ---
 
-## 6. Person A: Ingest (`feat/ingest`)
+## 7. Person 1: Lead (skeleton + docs + ingest)
 
-**Role:** Turn a GitHub URL into a clean `RepoSnapshot`. Everything downstream depends on this being correct. Also provide fixtures so teammates can test offline.
+**Role:** Keep the project submission-ready and unblock everyone. Two jobs in order: (1) skeleton and docs on `main`, fast, so the other 3 can start; (2) ingest on `feat/ingest`. Also reviews PRs, runs final integration, fills the submission form.
 
-**Owns:** `src/ingest/`, `test/ingest/`, `test/fixtures/`
+**Owns:** `main`, `src/schema.ts`, root docs and config, `src/ingest/`, `test/ingest/`, `test/fixtures/`
+
+### Job 1: skeleton and docs (on `main`, finish by 11:25)
+
+**Deliverables:**
+
+- Public repo, **all 4 members added** as collaborators
+- `schema.ts`, `package.json`, `tsconfig.json`, `.gitignore`, `.env.example`
+- `README.md`: problem, how to run, architecture, team and roles, MLH Code of Conduct link
+- `MODEL_CARD.md`: Gemma 4 open-weight, Gemini API only as host endpoint, no closed model, limitations
+- `CONTRIBUTING.md`, `LICENSE` (Apache-2.0 or MIT)
+
+**Meta-prompt 1 to give Claude (after the shared context block):**
+
+```text
+My role: Lead, job 1, skeleton and docs. Branch main. Folder: root files and docs only.
+
+Write me the Antigravity prompt for this task:
+
+Create the project skeleton and docs for RepoJudge:
+- package.json (scripts: build, start, dev, test; deps: express, zod, @octokit/rest, @google/genai; devDeps: typescript, vitest, tsx, @types/node, @types/express), tsconfig.json (strict), .gitignore (node_modules, dist, .env), .env.example with GITHUB_TOKEN, GEMINI_API_KEY, GEMMA_MODEL (placeholders only).
+- src/schema.ts exactly as I provide below (I will paste it).
+- README.md: problem statement, features, rules-only vs rules+Gemma toggle, architecture diagram in text, setup and run steps, tech stack, team roles (4 people), link to the MLH Code of Conduct, link to MODEL_CARD.md.
+- MODEL_CARD.md: model is Gemma 4 (open-weight) used as the judge; Gemini API is used only as the hosting endpoint for Gemma; no closed model anywhere including fallback; intended use; limitations (can be wrong, scores are advisory); prompt-injection defenses; data handled (public repo data only).
+- CONTRIBUTING.md and a LICENSE file.
+Do not create any files inside src/ingest, src/rules, src/judge, public.
+Include a done-checklist.
+```
+
+### Job 2: ingest (on `feat/ingest`)
 
 **Deliverables:**
 
 - `buildSnapshot(url): Promise<RepoSnapshot>`
-- 3 JSON fixtures: good repo, bare repo, repo with prompt-injection text in README
+- 3 JSON fixtures: good repo, bare repo, repo with prompt-injection text in README. Push these early.
 - `loadFixture(name)` helper
 - Readable errors for 404, private repo, rate limit, empty repo
 
-**Meta-prompt to give Claude (after the shared context block):**
+**Meta-prompt 2 to give Claude (after the shared context block):**
 
 ```text
-My role: Person A, ingest. Branch feat/ingest. Folder: src/ingest/, test/ingest/, test/fixtures/ only.
+My role: Lead, job 2, ingest. Branch feat/ingest. Folder: src/ingest/, test/ingest/, test/fixtures/ only.
 
 Write me the Antigravity prompt for this task:
 
@@ -235,7 +278,7 @@ Build src/ingest/github.ts exporting async function buildSnapshot(url: string): 
 
 ---
 
-## 7. Person B: Rules engine and CI (`feat/rules`)
+## 8. Person 2: Rules engine and CI (`feat/rules`)
 
 **Role:** Build the deterministic part. This is what makes the project "easy to verify", so it must be correct and well tested. Also owns merging rule results with Gemma results into the final Scorecard, and the CI workflow.
 
@@ -252,7 +295,7 @@ Build src/ingest/github.ts exporting async function buildSnapshot(url: string): 
 **Meta-prompt to give Claude:**
 
 ```text
-My role: Person B, rules engine. Branch feat/rules. Folder: src/rules/, src/merge.ts, test/rules/, .github/workflows/ci.yml only.
+My role: Person 2, rules engine. Branch feat/rules. Folder: src/rules/, src/merge.ts, test/rules/, .github/workflows/ci.yml only.
 
 Write me the Antigravity prompt for this task:
 
@@ -274,7 +317,7 @@ Include a done-checklist and tell the agent to run npm test and fix failures.
 
 ---
 
-## 8. Person C: Gemma judge (`feat/judge`)
+## 9. Person 3: Gemma judge (`feat/judge`)
 
 **Role:** Own the AI part. Prompt design, prompt-injection defense, safe parsing. This is the core "open-source AI" piece and a likely focus for judges' questions.
 
@@ -290,7 +333,7 @@ Include a done-checklist and tell the agent to run npm test and fix failures.
 **Meta-prompt to give Claude:**
 
 ```text
-My role: Person C, Gemma judge. Branch feat/judge. Folder: src/judge/, test/judge/ only.
+My role: Person 3, Gemma judge. Branch feat/judge. Folder: src/judge/, test/judge/ only.
 
 Write me the Antigravity prompt for this task:
 
@@ -304,7 +347,7 @@ Include a done-checklist and tell the agent to run npm test and fix failures.
 
 ---
 
-## 9. Person D: Server and UI (`feat/ui`)
+## 10. Person 4: Server, UI and demo (`feat/ui`)
 
 **Role:** Everything the judges see and click. Also writes the demo script and Q&A answers, since this person knows the UI best. The demo and explanation criterion depends on this.
 
@@ -321,7 +364,7 @@ Include a done-checklist and tell the agent to run npm test and fix failures.
 **Meta-prompt to give Claude:**
 
 ```text
-My role: Person D, server and UI. Branch feat/ui. Folder: src/server.ts, src/stubs/, public/, test/server/, demo/DEMO.md only.
+My role: Person 4, server and UI. Branch feat/ui. Folder: src/server.ts, src/stubs/, public/, test/server/, demo/DEMO.md only.
 
 Write me the Antigravity prompt for this task:
 
@@ -334,49 +377,13 @@ Include a done-checklist and tell the agent to run npm test and fix failures.
 
 ---
 
-## 10. Lead (works on `main`)
-
-**Role:** Keep the project submission-ready and unblock everyone. Does not wait for others.
-
-**Owns:** `main`, `src/schema.ts`, root docs and config
-
-**Deliverables:**
-
-- Public repo created, **all 5 members added**
-- `schema.ts`, `package.json`, `tsconfig.json`, `.gitignore`, `.env.example` pushed first (by 11:00)
-- `README.md`: problem, how to run, architecture, team and roles, demo link, MLH Code of Conduct link
-- `MODEL_CARD.md`: Gemma 4 open-weight, hosted via Gemini API only as an endpoint, no closed model used, limitations
-- `CONTRIBUTING.md`, `LICENSE` (Apache-2.0 or MIT)
-- Submission form text pre-written
-- PR review and merge in order A, B, C, D
-- Final run on 3 real repos, including RepoJudge itself
-
-**Meta-prompt to give Claude:**
-
-```text
-My role: Lead, working on main. Folder: root files and docs only.
-
-Write me the Antigravity prompt for this task:
-
-Create the project skeleton and docs for RepoJudge:
-- package.json (scripts: build, start, dev, test), tsconfig.json (strict), .gitignore (node_modules, dist, .env), .env.example with GITHUB_TOKEN, GEMINI_API_KEY, GEMMA_MODEL (placeholders only).
-- src/schema.ts exactly as I provide below (I will paste it).
-- README.md: problem statement, features, rules-only vs rules+Gemma toggle, architecture diagram in text, setup and run steps, tech stack, team roles, link to the MLH Code of Conduct, link to MODEL_CARD.md.
-- MODEL_CARD.md: model is Gemma 4 (open-weight) used as the judge; Gemini API is used only as the hosting endpoint for Gemma; no closed model anywhere including fallback; intended use; limitations (can be wrong, scores are advisory); prompt-injection defenses; data handled (public repo data only).
-- CONTRIBUTING.md and a LICENSE file.
-Do not create any files inside src/ingest, src/rules, src/judge, public.
-Include a done-checklist.
-```
-
----
-
 ## 11. Timeline (today)
 
 | Time | What |
 |---|---|
-| 10:45 to 11:15 | Lead pushes skeleton and `schema.ts`. Everyone clones, creates branch, generates prompt, starts Antigravity |
-| 11:15 to 1:00 | Parallel build. Small commits and PRs |
-| 1:00 to 1:45 | Lunch. Merge A, B, C, D. Run end to end |
+| 11:05 to 11:25 | Lead pushes skeleton and `schema.ts` to `main`. Others generate their Antigravity prompt meanwhile |
+| 11:25 to 1:00 | Parallel build. Small commits and PRs. Lead pushes fixtures early, then ingest |
+| 1:00 to 1:45 | Lunch. Merge ingest, rules, judge, ui in that order. Run end to end |
 | 1:45 to 2:30 | Bug fixes. Finish README and model card. Compare rules vs rules+Gemma on 3 repos |
 | 2:30 to 3:00 | Code freeze. Rehearse demo twice |
 | 3:00 to 3:30 | Submit form. Open repo in an incognito window to confirm it is public |
@@ -386,7 +393,7 @@ Include a done-checklist.
 
 ## 12. Final submission checklist
 
-- [ ] Repo is public, all 5 members added as collaborators
+- [ ] Repo is public, all 4 members added as collaborators
 - [ ] Commits from every member visible in history
 - [ ] Only Gemma 4 used; no `gemini-*` model id anywhere (search the repo)
 - [ ] MLH Code of Conduct linked in README
