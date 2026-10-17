@@ -504,6 +504,267 @@ export async function applyConfig() {
 }
 
 // ============================================================
+// § EFFECTS & VISUALIZATIONS
+// ============================================================
+
+let _orbitRunning = false;
+let _orbitRafId = null;
+let _orbitAngle = 0;
+let _parallaxX = 0;
+let _parallaxY = 0;
+let _parallaxTargetX = 0;
+let _parallaxTargetY = 0;
+
+const ORBIT_NODES = [
+  { ring: 0, speed: 0.4,  color: "#5ce1ff", size: 3, startAngle: 0   },
+  { ring: 0, speed: 0.4,  color: "#7c5cff", size: 2, startAngle: 2.1 },
+  { ring: 0, speed: 0.4,  color: "#9aa4c0", size: 2, startAngle: 4.2 },
+  { ring: 1, speed: 0.25, color: "#5ce1ff", size: 4, startAngle: 1.0 },
+  { ring: 1, speed: 0.25, color: "#7c5cff", size: 3, startAngle: 3.1 },
+  { ring: 2, speed: 0.15, color: "#7c5cff", size: 5, startAngle: 0.5 },
+  { ring: 2, speed: 0.15, color: "#5ce1ff", size: 3, startAngle: 3.6 },
+];
+
+const ORBIT_RADII = [80, 140, 210];
+
+export function drawOrbit(canvas, ts) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const W = canvas.width;
+  const H = canvas.height;
+  const cx = W / 2 + _parallaxX * 0.05;
+  const cy = H / 2 + _parallaxY * 0.05;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Core — glowing hexagon
+  const coreSize = 28;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(_orbitAngle * 0.3);
+
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 2.5);
+  grad.addColorStop(0, "rgba(124, 92, 255, 0.25)");
+  grad.addColorStop(0.4, "rgba(92, 225, 255, 0.10)");
+  grad.addColorStop(1, "transparent");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, coreSize * 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(124, 92, 255, 0.6)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+    const x = Math.cos(a) * coreSize;
+    const y = Math.sin(a) * coreSize;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(92, 225, 255, 0.9)";
+  ctx.beginPath();
+  ctx.arc(0, 0, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Orbit rings
+  for (let i = 0; i < ORBIT_RADII.length; i++) {
+    const r = ORBIT_RADII[i];
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255, ${0.04 - i * 0.01})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Orbiting nodes
+  const tSec = ts / 1000;
+  for (const node of ORBIT_NODES) {
+    const r = ORBIT_RADII[node.ring];
+    const angle = node.startAngle + tSec * node.speed + _orbitAngle;
+    const nx = cx + Math.cos(angle) * r;
+    const ny = cy + Math.sin(angle) * r;
+
+    const ng = ctx.createRadialGradient(nx, ny, 0, nx, ny, node.size * 3);
+    ng.addColorStop(0, node.color + "aa");
+    ng.addColorStop(1, "transparent");
+    ctx.fillStyle = ng;
+    ctx.beginPath();
+    ctx.arc(nx, ny, node.size * 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = node.color;
+    ctx.beginPath();
+    ctx.arc(nx, ny, node.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+export function startOrbit() {
+  const canvas = qs("#orbit-canvas");
+  if (!canvas || _orbitRunning) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  _orbitRunning = true;
+  let lastTs = null;
+
+  function frame(ts) {
+    if (!_orbitRunning) return;
+    if (lastTs !== null) {
+      const dt = (ts - lastTs) / 1000;
+      _orbitAngle += dt * 0.2;
+      _parallaxX += (_parallaxTargetX - _parallaxX) * 0.08;
+      _parallaxY += (_parallaxTargetY - _parallaxY) * 0.08;
+    }
+    lastTs = ts;
+    drawOrbit(canvas, ts);
+    _orbitRafId = requestAnimationFrame(frame);
+  }
+
+  _orbitRafId = requestAnimationFrame(frame);
+}
+
+export function stopOrbit() {
+  _orbitRunning = false;
+  if (_orbitRafId !== null) {
+    cancelAnimationFrame(_orbitRafId);
+    _orbitRafId = null;
+  }
+}
+
+export function initHeroGlow() {
+  const hero = qs("#hero");
+  const glow = qs("#hero-glow");
+  if (!hero || !glow) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  let glowRafPending = false;
+  hero.addEventListener("pointermove", (e) => {
+    if (glowRafPending) return;
+    glowRafPending = true;
+    requestAnimationFrame(() => {
+      const rect = hero.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      glow.style.transform = `translate(${x - 300}px, ${y - 300}px)`;
+
+      _parallaxTargetX = (x - rect.width / 2) * 0.5;
+      _parallaxTargetY = (y - rect.height / 2) * 0.5;
+      glowRafPending = false;
+    });
+  }, { passive: true });
+}
+
+export function initMagneticButton() {
+  const btn = qs("#analyze-btn");
+  if (!btn) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (window.matchMedia("(pointer: coarse)").matches) return;
+
+  const MAX_OFFSET = 6;
+  let btnRafPending = false;
+
+  btn.addEventListener("pointermove", (e) => {
+    if (btnRafPending) return;
+    btnRafPending = true;
+    requestAnimationFrame(() => {
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const radius = rect.width * 0.8;
+
+      if (dist < radius) {
+        const factor = (1 - dist / radius) * MAX_OFFSET;
+        const ox = (dx / dist) * factor;
+        const oy = (dy / dist) * factor;
+        btn.style.transform = `translate(${ox}px, ${oy}px) translateY(-2px)`;
+        const bx = ((e.clientX - rect.left) / rect.width) * 100;
+        const by = ((e.clientY - rect.top) / rect.height) * 100;
+        btn.style.setProperty("--btn-mx", `${bx}%`);
+        btn.style.setProperty("--btn-my", `${by}%`);
+      }
+      btnRafPending = false;
+    });
+  }, { passive: true });
+
+  btn.addEventListener("pointerleave", () => {
+    btn.style.transform = "";
+  }, { passive: true });
+}
+
+export function initCardTilt() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (window.matchMedia("(pointer: coarse)").matches) return;
+
+  const MAX_TILT = 6;
+
+  function handleTilt(e, card) {
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const rx = ((e.clientY - cy) / (rect.height / 2)) * -MAX_TILT;
+    const ry = ((e.clientX - cx) / (rect.width / 2)) * MAX_TILT;
+    card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+  }
+
+  const grid = qs("#criteria-grid");
+  if (!grid) return;
+
+  grid.addEventListener("pointermove", (e) => {
+    const card = e.target.closest(".criterion-card");
+    if (!card) return;
+    requestAnimationFrame(() => handleTilt(e, card));
+  }, { passive: true });
+
+  grid.addEventListener("pointerleave", (e) => {
+    const card = e.target.closest?.(".criterion-card");
+    if (card) card.style.transform = "";
+  }, { passive: true });
+}
+
+let _revealObserver = null;
+export function initReveal() {
+  const items = qsa(".reveal");
+  if (!("IntersectionObserver" in window)) {
+    for (const el of items) setClass(el, "no-observer", true);
+    return;
+  }
+
+  if (_revealObserver) _revealObserver.disconnect();
+  _revealObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          setClass(entry.target, "is-visible", true);
+          _revealObserver.unobserve(entry.target);
+        }
+      }
+    },
+    { threshold: 0.12 }
+  );
+
+  for (const el of items) _revealObserver.observe(el);
+}
+
+export function initVisibilityCleanup() {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopOrbit();
+    } else if (getState() === "idle") {
+      startOrbit();
+    }
+  });
+}
+
+// ============================================================
 // § TESTABILITY EXPORTS
 // ============================================================
 if (typeof globalThis !== "undefined") {
@@ -527,6 +788,11 @@ function init() {
   initInputPanel();
   initModeSelector();
   initResetButtons();
+  initHeroGlow();
+  initMagneticButton();
+  startOrbit();
+  initReveal();
+  initVisibilityCleanup();
   applyConfig();
   updateNavMode("rules");
 }
