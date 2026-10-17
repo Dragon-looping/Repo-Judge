@@ -67,6 +67,7 @@ describe("mergeScorecard", () => {
     expect(scorecard.unscored).toContain("clear_problem");
     expect(scorecard.model).toEqual({
       name: process.env.GEMMA_MODEL ?? "unknown",
+      servedBy: "Gemini API",
       openWeight: true,
     });
 
@@ -74,8 +75,10 @@ describe("mergeScorecard", () => {
   });
 
   it("handles mode 'rules+gemma' with complete verdicts: calculates combined numeric total", () => {
-    const prevEnv = process.env.GEMMA_MODEL;
+    const prevModel = process.env.GEMMA_MODEL;
+    const prevServedBy = process.env.GEMMA_SERVED_BY;
     process.env.GEMMA_MODEL = "gemma-4-test";
+    delete process.env.GEMMA_SERVED_BY;
 
     try {
       const scorecard = mergeScorecard(snap, rules, fullVerdicts, "rules+gemma");
@@ -86,12 +89,18 @@ describe("mergeScorecard", () => {
       expect(scorecard.total).toBeGreaterThan(0);
       expect(scorecard.model).toEqual({
         name: "gemma-4-test",
+        servedBy: "Gemini API",
         openWeight: true,
       });
 
       expect(() => Scorecard.parse(scorecard)).not.toThrow();
     } finally {
-      process.env.GEMMA_MODEL = prevEnv;
+      process.env.GEMMA_MODEL = prevModel;
+      if (prevServedBy !== undefined) {
+        process.env.GEMMA_SERVED_BY = prevServedBy;
+      } else {
+        delete process.env.GEMMA_SERVED_BY;
+      }
     }
   });
 });
