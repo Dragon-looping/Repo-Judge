@@ -1,0 +1,20 @@
+{
+  "url": "https://github.com/solo-dev/bare-repo",
+  "owner": "solo-dev",
+  "name": "bare-repo",
+  "isPublic": true,
+  "license": null,
+  "readme": null,
+  "fileTree": [
+    "index.js"
+  ],
+  "commitCount": 2,
+  "contributors": [
+    { "login": "solo", "commits": 2 }
+  ],
+  "hasCI": false,
+  "hasTests": false,
+  "hasCodeOfConduct": false,
+  "linksMlhCoc": false,
+  "fetchedAt": "2026-10-17T12:00:00.000Z"
+}
