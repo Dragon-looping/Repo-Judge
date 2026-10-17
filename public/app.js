@@ -268,6 +268,150 @@ export function validateUrl(raw) {
 }
 
 // ============================================================
+// § DETERMINISTIC RULE CARDS & EVIDENCE PANELS
+// ============================================================
+
+export function makeCheckOrXIcon(pass) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "rule-status__icon");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", pass ? "#22c55e" : "#ef4444");
+  svg.setAttribute("stroke-width", "2.5");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+
+  if (pass) {
+    const poly = document.createElementNS(ns, "polyline");
+    poly.setAttribute("points", "20 6 9 17 4 12");
+    svg.appendChild(poly);
+  } else {
+    const l1 = document.createElementNS(ns, "line");
+    l1.setAttribute("x1", "18"); l1.setAttribute("y1", "6");
+    l1.setAttribute("x2", "6");  l1.setAttribute("y2", "18");
+    const l2 = document.createElementNS(ns, "line");
+    l2.setAttribute("x1", "6");  l2.setAttribute("y1", "6");
+    l2.setAttribute("x2", "18"); l2.setAttribute("y2", "18");
+    svg.appendChild(l1);
+    svg.appendChild(l2);
+  }
+  return svg;
+}
+
+export function buildEvidencePanel(summaryText, bodyEl) {
+  const details = h("details", { class: "evidence-panel" });
+
+  const summary = h("summary");
+  summary.textContent = summaryText;
+
+  const chevron = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  chevron.setAttribute("class", "evidence-panel__chevron");
+  chevron.setAttribute("width", "14");
+  chevron.setAttribute("height", "14");
+  chevron.setAttribute("viewBox", "0 0 24 24");
+  chevron.setAttribute("fill", "none");
+  chevron.setAttribute("stroke", "currentColor");
+  chevron.setAttribute("stroke-width", "2");
+  chevron.setAttribute("stroke-linecap", "round");
+  chevron.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  path.setAttribute("points", "6 9 12 15 18 9");
+  chevron.appendChild(path);
+  summary.appendChild(chevron);
+
+  const body = h("div", { class: "evidence-panel__body" });
+  body.appendChild(bodyEl);
+
+  details.appendChild(summary);
+  details.appendChild(body);
+  return details;
+}
+
+export function buildCriterionCard(criterionId, rules, verdict, mode) {
+  const meta = CRITERION_META[criterionId] ?? {
+    title: criterionId,
+    desc: "",
+    icon: "●",
+  };
+
+  const card = h("article", {
+    class: "criterion-card reveal",
+    role: "listitem",
+    "data-criterion": criterionId,
+  });
+
+  // Card header
+  const header = h("div", { class: "criterion-card__header" });
+  const iconEl = h("div", { class: "criterion-icon", "aria-hidden": "true" });
+  iconEl.textContent = meta.icon;
+
+  const titleGroup = h("div", { class: "criterion-card__title-group" });
+  const titleEl = h("h3", { class: "criterion-card__title" });
+  titleEl.textContent = meta.title;
+  const descEl = h("p", { class: "criterion-card__desc" });
+  descEl.textContent = meta.desc;
+  titleGroup.appendChild(titleEl);
+  titleGroup.appendChild(descEl);
+
+  header.appendChild(iconEl);
+  header.appendChild(titleGroup);
+  card.appendChild(header);
+
+  // Card body
+  const body = h("div", { class: "criterion-card__body" });
+
+  // Deterministic rules section
+  const rulesSection = h("div", { class: "criterion-section" });
+  const rulesLabel = h("div", { class: "criterion-section__label" });
+  rulesLabel.textContent = "Deterministic checks";
+  rulesSection.appendChild(rulesLabel);
+
+  const criterionRules = rules.filter((r) => r.criterion === criterionId);
+
+  if (criterionRules.length === 0) {
+    const empty = h("p", { class: "text-tertiary text-sm" });
+    empty.textContent = "No checks for this criterion.";
+    rulesSection.appendChild(empty);
+  } else {
+    const ruleList = h("div", { class: "rule-list" });
+    for (const rule of criterionRules) {
+      const item = h("div", { class: `rule-item ${rule.pass ? "is-pass" : "is-fail"}` });
+
+      const statusEl = h("div", { class: "rule-status" });
+      const iconSvg = makeCheckOrXIcon(rule.pass);
+      statusEl.appendChild(iconSvg);
+      const statusText = h("span", { class: "rule-status__text" });
+      statusText.textContent = rule.pass ? "Pass" : "Fail";
+      statusEl.appendChild(statusText);
+
+      const content = h("div", { class: "rule-content" });
+      const idEl = h("span", { class: "rule-id" });
+      idEl.textContent = rule.id;
+      content.appendChild(idEl);
+
+      const evidenceBody = h("p", { class: "evidence-text" });
+      evidenceBody.textContent = rule.evidence;
+      const panel = buildEvidencePanel("Evidence", evidenceBody);
+      content.appendChild(panel);
+
+      item.appendChild(statusEl);
+      item.appendChild(content);
+      ruleList.appendChild(item);
+    }
+    rulesSection.appendChild(ruleList);
+  }
+
+  body.appendChild(rulesSection);
+  card.appendChild(body);
+
+  return card;
+}
+
+// ============================================================
 // § API
 // ============================================================
 
@@ -913,6 +1057,9 @@ if (typeof globalThis !== "undefined") {
     isSafeExternalUrl,
     repoNameFromUrl,
     CRITERION_ORDER,
+    buildCriterionCard,
+    buildEvidencePanel,
+    makeCheckOrXIcon,
   };
 }
 
