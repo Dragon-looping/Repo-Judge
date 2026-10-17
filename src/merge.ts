@@ -88,6 +88,7 @@ export function mergeScorecard(
 
   const model = {
     name: process.env.GEMMA_MODEL ?? "unknown",
+    servedBy: process.env.GEMMA_SERVED_BY ?? "Gemini API",
     openWeight: true as const,
   };
 
