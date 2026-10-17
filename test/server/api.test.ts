@@ -78,6 +78,7 @@ describe("RepoJudge Server API", () => {
   let activeServers: Server[] = [];
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     for (const s of activeServers) {
       await new Promise<void>((resolve) => s.close(() => resolve()));
     }
@@ -349,7 +350,7 @@ describe("RepoJudge Server API", () => {
         verdicts,
         unscored: ["submission"],
         total: null,
-        model: { name: "gemma-test", servedBy: "gemma-test", openWeight: true as const },
+        model: { name: "gemma-test", servedBy: "test-provider", openWeight: true },
         generatedAt: new Date().toISOString(),
       }));
 
