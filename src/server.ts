@@ -15,20 +15,28 @@ import { z } from "zod";
 
 import { Scorecard } from "./schema.js";
 
+if (typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile();
+  } catch {
+    // .env file is optional
+  }
+}
+
 // ============================================================
 // ---- MODULE WIRING: swap stubs for real modules here -------
 // ---- (one line per import; flip USING_STUBS when swapping) -
 // ============================================================
-import { buildSnapshot } from "./stubs/ingest.js";   // real: "./ingest/github"
-import { runRules }      from "./stubs/rules.js";    // real: "./rules/index"
-import { judge }         from "./stubs/judge.js";    // real: "./judge/gemma"
-import { mergeScorecard } from "./stubs/merge.js";   // real: "./merge"
+import { buildSnapshot, IngestError } from "./ingest/github.js";
+import { runRules }      from "./rules/index.js";
+import { judge }         from "./judge/gemma.js";
+import { mergeScorecard } from "./merge.js";
 // ============================================================
 // USING_STUBS: set to false when real modules are wired above.
 // While true, every /api/judge response carries:
 //   X-RepoJudge-Data-Source: stub
 // and /api/health reports { dataSource: "stub" }
-const USING_STUBS = true;
+const USING_STUBS = false;
 // ============================================================
 
 // ---- Types --------------------------------------------------
@@ -42,7 +50,9 @@ export type Deps = {
     snap: RepoSnapshot,
     rules: RuleCheck[],
     verdicts: GemmaVerdict[],
-    mode: "rules" | "rules+gemma"
+    mode: "rules" | "rules+gemma",
+    unscored?: import("./schema.js").CriterionId[],
+    servedBy?: string | null
   ) => import("./schema.js").Scorecard;
 };
 
@@ -188,6 +198,9 @@ const JudgeBodySchema = z.object({
 type UpstreamError = Error & { status?: number; publicMessage?: string };
 
 function mapUpstreamError(err: unknown): { statusCode: number; message: string } {
+  if (err instanceof IngestError) {
+    return { statusCode: err.status, message: err.publicMessage };
+  }
   if (err && typeof err === "object") {
     const e = err as UpstreamError;
     if (typeof e.status === "number" && typeof e.publicMessage === "string") {
@@ -394,15 +407,25 @@ async function runPipeline(
   const snap = await Promise.resolve(deps.buildSnapshot(url));
   const rules = await Promise.resolve(deps.runRules(snap));
 
-  let verdicts: GemmaVerdict[] = [];
   if (mode === "rules+gemma") {
     // Call judge exactly once
     const result = await Promise.resolve(deps.judge(snap));
-    verdicts = result.verdicts;
+    const servedBy =
+      process.env["GEMMA_SERVED_BY"]?.trim() || "Gemini API (hosting endpoint)";
+    return Promise.resolve(
+      deps.mergeScorecard(
+        snap,
+        rules,
+        result.verdicts,
+        mode,
+        result.unscored,
+        servedBy
+      )
+    );
   }
-  // In rules mode: never call judge
 
-  return Promise.resolve(deps.mergeScorecard(snap, rules, verdicts, mode));
+  // In rules mode: never call judge
+  return Promise.resolve(deps.mergeScorecard(snap, rules, [], mode));
 }
 
 // ============================================================
@@ -418,7 +441,7 @@ if (isMain) {
   const app = createApp();
   app.listen(port, () => {
     console.log(`[repojudge] Server running on http://localhost:${port}`);
-    console.log(`[repojudge] Data source: ${USING_STUBS ? "STUB" : "LIVE"}`);
+    console.log(`[repojudge] Data source: ${USING_STUBS ? "Using STUBS" : "Using REAL modules"}`);
     console.log(`[repojudge] Repo URL: ${REPO_URL ?? "(not configured)"}`);
   });
 }
