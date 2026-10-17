@@ -665,6 +665,164 @@ export function initCopyButton() {
 }
 
 // ============================================================
+// § RESULTS DASHBOARD RENDERING
+// ============================================================
+
+export function buildBadge(text, cls) {
+  const badge = h("span", { class: `badge ${cls}` });
+  badge.textContent = text;
+  return badge;
+}
+
+export function renderResults(scorecard, dataSource) {
+  const { repo, mode, rules, verdicts, unscored, total, model, generatedAt } = scorecard;
+
+  // Stub banner
+  const stubBanner = qs("#stub-banner");
+  const stubBannerText = qs("#stub-banner-text");
+  if (stubBanner && stubBannerText) {
+    if (dataSource === "stub") {
+      stubBanner.style.display = "";
+      stubBannerText.textContent =
+        "Demo data: stub modules active — not a live evaluation. Results are synthetic for demonstration purposes.";
+    } else {
+      stubBanner.style.display = "none";
+    }
+  }
+
+  // Repo name + link
+  const repoDisplay = qs("#results-repo-display");
+  if (repoDisplay) {
+    const name = repoNameFromUrl(repo);
+    if (isSafeExternalUrl(repo)) {
+      const link = h("a", {
+        href: repo,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        "aria-label": `Open ${name} on GitHub (opens in new tab)`,
+      });
+      link.textContent = name;
+      repoDisplay.textContent = "";
+      repoDisplay.appendChild(link);
+    } else {
+      repoDisplay.textContent = name;
+    }
+  }
+
+  // Meta badges
+  const metaEl = qs("#results-meta");
+  if (metaEl) {
+    metaEl.textContent = "";
+    metaEl.appendChild(
+      buildBadge(
+        mode === "rules+gemma" ? "Rules + Gemma 4" : "Rules Only",
+        mode === "rules+gemma" ? "badge--gemma" : "badge--rules"
+      )
+    );
+    const timeBadge = buildBadge(`Generated: ${formatDate(generatedAt)}`, "badge--time");
+    metaEl.appendChild(timeBadge);
+    if (model) {
+      const modelBadge = buildBadge(`Model: ${model.name}`, "badge--gemma");
+      metaEl.appendChild(modelBadge);
+    }
+  }
+
+  // Total score block
+  const totalBlock = qs("#results-total-block");
+  if (totalBlock) {
+    totalBlock.textContent = "";
+    if (mode === "rules") {
+      const totalWrap = h("div", { class: "results-total" });
+      const lbl = h("span", { class: "results-total__label" });
+      lbl.textContent = "Total";
+      const val = h("span", { class: "results-total__value" });
+      if (typeof total === "number" && isFinite(total)) {
+        val.textContent = String(total);
+      } else {
+        val.textContent = "—";
+      }
+      totalWrap.appendChild(lbl);
+      totalWrap.appendChild(val);
+      totalBlock.appendChild(totalWrap);
+    } else if (total !== null && typeof total === "number" && isFinite(total)) {
+      const totalWrap = h("div", { class: "results-total" });
+      const lbl = h("span", { class: "results-total__label" });
+      lbl.textContent = "Total";
+      const val = h("span", { class: "results-total__value" });
+      val.textContent = String(total);
+      totalWrap.appendChild(lbl);
+      totalWrap.appendChild(val);
+      totalBlock.appendChild(totalWrap);
+    } else {
+      const unavailWrap = h("div", { class: "results-total" });
+      const icon = makeWarnIcon();
+      const msg = h("div");
+      const msgLine = h("p", { class: "results-total--unavailable text-sm" });
+      msgLine.textContent =
+        "Total unavailable: one or more criteria were not scored.";
+      msg.appendChild(msgLine);
+      if (unscored && unscored.length > 0) {
+        const unscoredList = h("p", { class: "text-xs text-tertiary mt-4" });
+        unscoredList.textContent = `Not scored: ${unscored.join(", ")}`;
+        msg.appendChild(unscoredList);
+      }
+      unavailWrap.appendChild(icon);
+      unavailWrap.appendChild(msg);
+      totalBlock.appendChild(unavailWrap);
+    }
+  }
+
+  // Summary bar
+  const passCount   = rules.filter((r) => r.pass).length;
+  const failCount   = rules.filter((r) => !r.pass).length;
+  const scoredCount = (verdicts ?? []).length;
+  const unscoredCount = (unscored ?? []).length;
+
+  const statPass   = qs("#stat-pass-count");
+  const statFail   = qs("#stat-fail-count");
+  const statScored = qs("#stat-scored-count");
+  const statUnscored = qs("#stat-unscored-count");
+
+  if (statPass)     statPass.textContent     = String(passCount);
+  if (statFail)     statFail.textContent     = String(failCount);
+  if (statScored)   statScored.textContent   = String(scoredCount);
+  if (statUnscored) statUnscored.textContent = String(unscoredCount);
+
+  // Criteria grid
+  const grid = qs("#criteria-grid");
+  if (grid) {
+    grid.textContent = "";
+
+    const verdictMap = {};
+    for (const v of (verdicts ?? [])) {
+      verdictMap[v.criterion] = v;
+    }
+
+    for (const cid of CRITERION_ORDER) {
+      const criterionRules = rules.filter((r) => r.criterion === cid);
+      const verdict = verdictMap[cid] ?? null;
+      const card = buildCriterionCard(cid, criterionRules, verdict, mode);
+      grid.appendChild(card);
+    }
+  }
+
+  initReveal();
+
+  const heading = qs("#results-heading");
+  if (heading) {
+    heading.focus();
+    heading.setAttribute("tabindex", "-1");
+  }
+
+  announceStatus(
+    `Evaluation complete. ${passCount} of ${rules.length} rules passed.` +
+    (mode === "rules+gemma"
+      ? ` ${scoredCount} criteria scored by Gemma 4.`
+      : " Rules Only mode — no AI call was made.")
+  );
+}
+
+// ============================================================
 // § API
 // ============================================================
 
@@ -828,9 +986,8 @@ export function initInputPanel() {
 
       _lastScorecard = scorecard;
       setState("success");
-      if (typeof window.__renderResultsHook === "function") {
-        window.__renderResultsHook(scorecard, dataSource);
-      }
+      renderResults(scorecard, dataSource);
+      initCardTilt();
     } catch (err) {
       clearTimeout(clientTimeout);
 
@@ -1315,6 +1472,8 @@ if (typeof globalThis !== "undefined") {
     makeCheckOrXIcon,
     buildScoreRing,
     buildPlainTextSummary,
+    renderResults,
+    buildBadge,
   };
 }
 
