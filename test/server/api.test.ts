@@ -346,7 +346,7 @@ describe("RepoJudge Server API", () => {
         verdicts,
         unscored: ["submission"],
         total: null,
-        model: { name: "gemma-test", openWeight: true },
+        model: { name: "gemma-test", servedBy: "test-provider", openWeight: true },
         generatedAt: new Date().toISOString(),
       }));
 
