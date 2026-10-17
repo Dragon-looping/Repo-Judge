@@ -362,6 +362,104 @@ export function initNav() {
   });
 }
 
+export function updateNavMode(mode) {
+  const badge = qs("#nav-mode-badge");
+  const text  = qs("#nav-mode-text");
+  if (!badge || !text) return;
+  text.textContent = mode === "rules+gemma" ? "Rules + Gemma 4" : "Rules Only";
+  setClass(badge, "is-rules", mode === "rules");
+  setClass(badge, "is-gemma", mode === "rules+gemma");
+}
+
+export function initModeSelector() {
+  const modeInputs = qsa("input[name='mode']");
+  const gemmaStep  = qs("#loading-gemma-step");
+
+  for (const radio of modeInputs) {
+    radio.addEventListener("change", () => {
+      _currentMode = radio.value;
+      updateNavMode(_currentMode);
+      if (gemmaStep) {
+        gemmaStep.style.display = _currentMode === "rules+gemma" ? "" : "none";
+      }
+    });
+  }
+
+  // Arrow-key keyboard navigation for accessible radio group
+  const modeGroup = qs(".mode-selector__group");
+  if (modeGroup) {
+    modeGroup.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const focused = document.activeElement;
+      const all = qsa("input[name='mode']", modeGroup);
+      const idx = all.indexOf(focused);
+      if (idx === -1) return;
+      const next = e.key === "ArrowRight"
+        ? (idx + 1) % all.length
+        : (idx - 1 + all.length) % all.length;
+      all[next].focus();
+      all[next].checked = true;
+      all[next].dispatchEvent(new Event("change", { bubbles: true }));
+      e.preventDefault();
+    });
+  }
+}
+
+export function initActiveLinks() {
+  const links = qsa(".nav__link[href^='#']");
+  const sections = links.map((l) => qs(l.getAttribute("href"))).filter(Boolean);
+
+  if (!("IntersectionObserver" in window)) return;
+
+  const obs = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute("id");
+          for (const link of links) {
+            setClass(link, "is-active", link.getAttribute("href") === `#${id}`);
+          }
+        }
+      }
+    },
+    { rootMargin: "-40% 0px -55% 0px" }
+  );
+
+  for (const sec of sections) obs.observe(sec);
+}
+
+export function initResetButtons() {
+  const analyzeAnotherBtn = qs("#analyze-another-btn");
+  const errorResetBtn     = qs("#error-reset-btn");
+  const retryBtn          = qs("#retry-btn");
+
+  function resetToIdle() {
+    setState("idle");
+    const input = qs("#repo-url");
+    if (input) {
+      input.value = "";
+      input.removeAttribute("aria-invalid");
+      input.focus();
+    }
+  }
+
+  if (analyzeAnotherBtn) {
+    analyzeAnotherBtn.addEventListener("click", resetToIdle);
+  }
+  if (errorResetBtn) {
+    errorResetBtn.addEventListener("click", resetToIdle);
+  }
+  if (retryBtn) {
+    retryBtn.addEventListener("click", () => {
+      const form = qs("#judge-form");
+      if (form) {
+        setState("idle");
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      }
+    });
+  }
+}
+
 export async function fetchConfig() {
   try {
     const resp = await fetch("/api/config");
@@ -425,8 +523,12 @@ if (typeof globalThis !== "undefined") {
 function init() {
   setState("idle");
   initNav();
+  initActiveLinks();
   initInputPanel();
+  initModeSelector();
+  initResetButtons();
   applyConfig();
+  updateNavMode("rules");
 }
 
 if (document.readyState === "loading") {
