@@ -124,4 +124,27 @@ describe("mergeScorecard", () => {
 
     expect(() => Scorecard.parse(scorecard)).not.toThrow();
   });
+
+  it("produces valid Scorecard with non-empty servedBy when servedBy is omitted in rules+gemma, and model null in rules mode", () => {
+    const fakeSnap = makeSnap();
+    const fakeRules = runRules(fakeSnap);
+    const fakeVerdicts: GemmaVerdict[] = CriterionId.options.map((criterion) => ({
+      criterion,
+      score: 4,
+      reasoning: "Looks good.",
+      evidence: ["README.md"],
+      suggestion: "Keep it up.",
+    }));
+
+    const gemmaCard = mergeScorecard(fakeSnap, fakeRules, fakeVerdicts, "rules+gemma");
+    const parsedGemma = Scorecard.safeParse(gemmaCard);
+    expect(parsedGemma.success).toBe(true);
+    expect(typeof gemmaCard.model?.servedBy).toBe("string");
+    expect(gemmaCard.model?.servedBy.length).toBeGreaterThan(0);
+
+    const rulesCard = mergeScorecard(fakeSnap, fakeRules, fakeVerdicts, "rules");
+    expect(rulesCard.model).toBeNull();
+    const parsedRules = Scorecard.safeParse(rulesCard);
+    expect(parsedRules.success).toBe(true);
+  });
 });

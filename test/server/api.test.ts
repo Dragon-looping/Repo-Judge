@@ -132,11 +132,12 @@ describe("RepoJudge Server API", () => {
     activeServers.push(server);
 
     const res = await fetch(`${url}/model-card`);
-    // MODEL_CARD.md is not currently in repository root, so expect 404 { error }
-    expect(res.status).toBe(404);
-    const body = (await res.json()) as Record<string, unknown>;
-    expect(body).toHaveProperty("error");
-    expect(Object.keys(body)).toEqual(["error"]);
+    // MODEL_CARD.md now exists in the repository root.
+    // The route serves it as text/plain with 200.
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(typeof text).toBe("string");
+    expect(text.length).toBeGreaterThan(0);
   });
 
   // ---- Unknown API route 404 ----------------------------------
@@ -346,7 +347,7 @@ describe("RepoJudge Server API", () => {
         verdicts,
         unscored: ["submission"],
         total: null,
-        model: { name: "gemma-test", openWeight: true },
+        model: { name: "gemma-test", servedBy: "gemma-test", openWeight: true as const },
         generatedAt: new Date().toISOString(),
       }));
 

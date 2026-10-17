@@ -58,7 +58,14 @@ export function mergeScorecard(
   }
 
   // mode === "rules+gemma"
-  if (verdicts.length > 0 && !servedBy) {
+  const resolvedServedBy =
+    servedBy !== undefined
+      ? servedBy
+      : verdicts.length > 0
+        ? (process.env.GEMMA_SERVED_BY?.trim() || "Gemini API (hosting endpoint)")
+        : null;
+
+  if (verdicts.length > 0 && !resolvedServedBy) {
     throw new Error(
       "servedBy required in rules+gemma mode when verdicts exist"
     );
@@ -93,10 +100,10 @@ export function mergeScorecard(
     total = Math.round(sum * 10) / 10;
   }
 
-  const model = servedBy
+  const model = resolvedServedBy
     ? {
         name: process.env.GEMMA_MODEL ?? "unknown",
-        servedBy,
+        servedBy: resolvedServedBy,
         openWeight: true as const,
       }
     : null;
