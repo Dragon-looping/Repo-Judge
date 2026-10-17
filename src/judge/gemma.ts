@@ -11,7 +11,7 @@ import {
 } from "./prompt.js";
 import { detectInjection } from "./sanitize.js";
 
-export const DEFAULT_TIMEOUT_MS = 30000;
+export const DEFAULT_TIMEOUT_MS = 90000;
 
 export interface GemmaClient {
   generate(args: {
@@ -220,7 +220,9 @@ export async function judge(
   const sleep =
     deps?.sleep ??
     ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
-  const timeoutMs = deps?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs =
+    deps?.timeoutMs ??
+    (env["GEMMA_TIMEOUT_MS"] ? Number(env["GEMMA_TIMEOUT_MS"]) : DEFAULT_TIMEOUT_MS);
 
   const verdictsByCriterion = new Map<CriterionId, GemmaVerdict>();
   let backoffCount = 0;

@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="RepoJudge evaluates public GitHub repositories against hackathon judging criteria using deterministic rules and Gemma 4 open-weight AI." />
-  <meta name="theme-color" content="#05060b" />
+  <meta name="description" content="RepoJudge evaluates public GitHub repositories against software engineering benchmarks using deterministic rules and Gemma 4 open-weight AI." />
+  <meta name="theme-color" content="#07090e" />
   <!-- Referrer policy matches server header -->
   <meta name="referrer" content="no-referrer" />
 
-  <title>RepoJudge — AI-Powered Hackathon Repository Evaluator</title>
+  <title>RepoJudge — Repository Audit &amp; Evaluation Workbench</title>
 
   <!-- CSP is set by the server; the meta tag below is a belt-and-suspenders
        fallback only. The server header always takes precedence. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';" />
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self';" />
 
   <link rel="stylesheet" href="/style.css" />
 </head>
@@ -35,25 +35,17 @@
         <div class="nav__inner">
           <!-- Brand -->
           <a href="/" class="nav__brand" aria-label="RepoJudge home">
-            <!-- Inline SVG brand mark: hexagonal prism / branching node -->
-            <svg class="nav__logo" viewBox="0 0 28 28" fill="none" aria-hidden="true" focusable="false">
-              <!-- Outer hexagon -->
-              <polygon points="14,2 24,8 24,20 14,26 4,20 4,8"
-                       stroke="#7c5cff" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-              <!-- Inner node -->
-              <circle cx="14" cy="14" r="3.5" fill="#5ce1ff" opacity="0.9"/>
-              <!-- Branch lines -->
-              <line x1="14" y1="10.5" x2="14" y2="4"  stroke="#7c5cff" stroke-width="1" opacity="0.6"/>
-              <line x1="14" y1="17.5" x2="14" y2="24" stroke="#7c5cff" stroke-width="1" opacity="0.6"/>
-              <line x1="10.5" y1="12" x2="5.5"  y2="9"  stroke="#5ce1ff" stroke-width="1" opacity="0.5"/>
-              <line x1="17.5" y1="12" x2="22.5" y2="9"  stroke="#5ce1ff" stroke-width="1" opacity="0.5"/>
+            <!-- Inline SVG brand mark: Terminal prompt icon -->
+            <svg class="nav__logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
             </svg>
-            <span class="nav__wordmark">Repo<span>Judge</span></span>
+            <span class="nav__wordmark">repojudge<span>.dev</span></span>
           </a>
 
           <!-- Desktop links -->
           <nav class="nav__links" aria-label="Page sections">
-            <a href="#how-it-works" class="nav__link">How it works</a>
+            <a href="#how-it-works" class="nav__link">Pipeline</a>
             <a href="#methodology"  class="nav__link">Methodology</a>
             <a href="#modes"        class="nav__link">Modes</a>
           </nav>
@@ -94,7 +86,7 @@
 
         <!-- Mobile menu panel -->
         <div id="mobile-panel" class="nav__mobile-panel" role="menu">
-          <a href="#how-it-works" class="nav__mobile-link" role="menuitem">How it works</a>
+          <a href="#how-it-works" class="nav__mobile-link" role="menuitem">Pipeline</a>
           <a href="#methodology"  class="nav__mobile-link" role="menuitem">Methodology</a>
           <a href="#modes"        class="nav__mobile-link" role="menuitem">Modes</a>
           <a id="mobile-github-link"
@@ -113,73 +105,37 @@
       <!-- ============ HERO SECTION ============ -->
       <section class="hero" id="hero" aria-labelledby="hero-headline">
 
-        <!-- Ambient cursor glow (moved by JS via transform) -->
+        <!-- Ambient cursor glow (hidden in CSS for clean terminal aesthetic) -->
         <div class="hero__glow" id="hero-glow" aria-hidden="true"></div>
 
-        <!-- Orbit visualization (canvas + decorative chips) -->
+        <!-- Orbit canvas (hidden in CSS for clean terminal aesthetic) -->
         <div class="orbit-wrap" aria-hidden="true">
           <canvas class="orbit-canvas" id="orbit-canvas" width="900" height="900"></canvas>
-
-          <!-- Decorative metadata chips — purely visual storytelling.
-               These are NOT live repository data. They illustrate what
-               the pipeline evaluates. -->
-          <div class="orbit-chips">
-            <span class="orbit-chip" style="top:18%; left:8%;"
-                  aria-hidden="true">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#5ce1ff" opacity="0.6"/></svg>
-              commits
-            </span>
-            <span class="orbit-chip" style="top:72%; left:6%;"
-                  aria-hidden="true">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#7c5cff" opacity="0.6"/></svg>
-              license
-            </span>
-            <span class="orbit-chip" style="top:12%; right:10%;"
-                  aria-hidden="true">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#5ce1ff" opacity="0.6"/></svg>
-              CI
-            </span>
-            <span class="orbit-chip" style="top:65%; right:7%;"
-                  aria-hidden="true">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#7c5cff" opacity="0.6"/></svg>
-              tests
-            </span>
-            <span class="orbit-chip" style="top:42%; left:3%;"
-                  aria-hidden="true">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#9aa4c0" opacity="0.5"/></svg>
-              README
-            </span>
-            <span class="orbit-chip" style="top:38%; right:3%;"
-                  aria-hidden="true">
-              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="#9aa4c0" opacity="0.5"/></svg>
-              contributors
-            </span>
-          </div>
+          <div class="orbit-chips"></div>
         </div>
 
         <!-- Hero text and form -->
         <div class="hero__content">
-          <!-- Eyebrow label -->
-          <span class="hero__eyebrow" aria-hidden="true">
-            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg>
-            Hackathon Evaluation Engine
-          </span>
+          <!-- Terminal-style eyebrow -->
+          <div class="hero__eyebrow" aria-hidden="true">
+            <span class="hero__prompt-char">$</span> repojudge audit --engine v1.0
+          </div>
 
           <!-- Main headline -->
           <h1 class="hero__headline" id="hero-headline">
-            Every Repository<br>Has a <em>Story</em>.<br>Judge the Evidence.
+            Repository Audit &amp; Code Quality Inspector
           </h1>
 
           <!-- Sub-headline -->
           <p class="hero__sub">
-            RepoJudge analyzes public GitHub repositories against six hackathon
-            judging criteria — using verifiable deterministic rules, optionally
-            augmented by Gemma&nbsp;4 open-weight AI assessments.
+            Automated deterministic evaluation engine for public GitHub repositories.
+            Audits project architecture, test suites, CI workflows, and licensing standards with
+            transparent, verifiable rules and optional Gemma&nbsp;4 advisory analysis.
           </p>
 
           <!-- Model note -->
           <p class="hero__model-note">
-            Judge model: Gemma&nbsp;4 (open-weight). AI scores are advisory only.
+            [AUDIT SPEC] Verifiable rules take precedence. Gemma&nbsp;4 open-weight verdicts are advisory only.
           </p>
 
           <!-- ---- THE ANALYSIS FORM ---- -->
@@ -188,14 +144,14 @@
             <!-- URL input -->
             <div class="input-group">
               <label class="input-label" for="repo-url">
-                GitHub Repository URL
+                TARGET GITHUB REPOSITORY URL
               </label>
               <div class="input-wrap">
                 <span class="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
                   </svg>
                 </span>
                 <input
@@ -203,7 +159,7 @@
                   id="repo-url"
                   name="url"
                   class="repo-input"
-                  placeholder="https://github.com/owner/repo"
+                  placeholder="https://github.com/owner/repository"
                   autocomplete="url"
                   spellcheck="false"
                   autocorrect="off"
@@ -220,7 +176,7 @@
 
             <!-- Mode selector -->
             <div class="mode-selector" id="modes">
-              <span class="mode-selector__label" id="mode-group-label">Evaluation Mode</span>
+              <span class="mode-selector__label" id="mode-group-label">EVALUATION PIPELINE MODE</span>
               <div class="mode-selector__group"
                    role="radiogroup"
                    aria-labelledby="mode-group-label">
@@ -236,10 +192,10 @@
                 <label class="mode-option" for="mode-rules">
                   <span class="mode-option__title">
                     <span class="mode-dot" style="color:var(--c-cyan-500)"></span>
-                    Rules Only
+                    DETERMINISTIC RULES
                   </span>
                   <span class="mode-option__desc" id="mode-rules-desc">
-                    Deterministic checks only. Verifiable, reproducible, no AI call ever.
+                    Pure rule-based static checks. Verifiable, reproducible, sub-second runtime. Zero AI calls.
                   </span>
                 </label>
 
@@ -252,11 +208,11 @@
                        aria-describedby="mode-gemma-desc" />
                 <label class="mode-option" for="mode-gemma">
                   <span class="mode-option__title">
-                    <span class="mode-dot" style="color:var(--c-violet-500)"></span>
-                    Rules + Gemma&nbsp;4
+                    <span class="mode-dot" style="color:var(--c-violet-400)"></span>
+                    RULES + GEMMA 4 ADVISORY
                   </span>
                   <span class="mode-option__desc" id="mode-gemma-desc">
-                    Deterministic checks plus Gemma&nbsp;4 (open-weight) AI verdicts. AI scores advisory.
+                    Deterministic checks plus Gemma&nbsp;4 (open-weight) advisory scoring. AI verdicts do not override rules.
                   </span>
                 </label>
               </div>
@@ -267,18 +223,17 @@
                     class="btn-primary"
                     id="analyze-btn"
                     aria-describedby="url-feedback">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
                    stroke-linejoin="round" aria-hidden="true" focusable="false">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="M21 21l-4.35-4.35"/>
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
-              Analyze Repository
+              RUN REPOSITORY AUDIT
             </button>
 
             <!-- Sample links -->
             <div class="sample-links" role="group" aria-label="Sample repositories">
-              <span class="sample-links__label">Try:</span>
+              <span class="sample-links__label">Quick test:</span>
               <button type="button" class="sample-link" data-sample="real"
                       aria-label="Load sample: github/gitignore (real public repo)">
                 github/gitignore
@@ -299,59 +254,59 @@
       <!-- ============ HOW IT WORKS SECTION ============ -->
       <section class="section" id="how-it-works" aria-labelledby="hiw-heading">
         <div class="container">
-          <h2 class="section__heading reveal" id="hiw-heading">How RepoJudge Works</h2>
+          <h2 class="section__heading reveal" id="hiw-heading">Evaluation Pipeline Architecture</h2>
           <p class="section__sub reveal">
-            A two-stage pipeline: verifiable rules first, then optional open-weight AI assessment.
+            A modular execution engine: strict deterministic verification followed by optional open-weight advisory inspection.
           </p>
 
           <!-- Static pipeline diagram -->
           <div class="pipeline-diagram" role="img" aria-label="Evaluation pipeline: URL input, then GitHub ingest, then Rules Engine, then optionally Gemma 4, then merge to Scorecard">
             <div class="pipe-node reveal">
               <div class="pipe-node__icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                     stroke="var(--c-text-secondary)" stroke-width="1.8" stroke-linecap="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="var(--c-cyan-400)" stroke-width="1.8" stroke-linecap="round">
                   <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
                   <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
                 </svg>
               </div>
-              <span class="pipe-node__label">Repo URL</span>
+              <span class="pipe-node__label">01 // REPO URL</span>
             </div>
-            <span class="pipe-arrow" aria-hidden="true">→</span>
+            <span class="pipe-arrow" aria-hidden="true">➔</span>
             <div class="pipe-node reveal">
               <div class="pipe-node__icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
                      style="color:var(--c-text-secondary)">
                   <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
                 </svg>
               </div>
-              <span class="pipe-node__label">GitHub Ingest</span>
+              <span class="pipe-node__label">02 // INGEST API</span>
             </div>
-            <span class="pipe-arrow" aria-hidden="true">→</span>
+            <span class="pipe-arrow" aria-hidden="true">➔</span>
             <div class="pipe-node reveal">
               <div class="pipe-node__icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                      stroke="var(--c-cyan-500)" stroke-width="1.8" stroke-linecap="round">
                   <polyline points="9 11 12 14 22 4"/>
                   <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                 </svg>
               </div>
-              <span class="pipe-node__label">Rules Engine</span>
+              <span class="pipe-node__label">03 // RULES ENGINE</span>
             </div>
-            <span class="pipe-arrow" aria-hidden="true">→</span>
+            <span class="pipe-arrow" aria-hidden="true">➔</span>
             <div class="pipe-node reveal">
               <div class="pipe-node__icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                     stroke="var(--c-violet-500)" stroke-width="1.8" stroke-linecap="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="var(--c-violet-400)" stroke-width="1.8" stroke-linecap="round">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
               </div>
-              <span class="pipe-node__label">Gemma 4<br><small style="color:var(--c-text-tertiary);font-size:0.7em">(rules+gemma only)</small></span>
+              <span class="pipe-node__label">04 // GEMMA 4 ADVISORY<br><small style="color:var(--c-text-tertiary);font-size:0.75em">(rules+gemma only)</small></span>
             </div>
-            <span class="pipe-arrow" aria-hidden="true">→</span>
+            <span class="pipe-arrow" aria-hidden="true">➔</span>
             <div class="pipe-node reveal">
               <div class="pipe-node__icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                     stroke="var(--c-text-secondary)" stroke-width="1.8" stroke-linecap="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="var(--c-pass-text)" stroke-width="1.8" stroke-linecap="round">
                   <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                   <polyline points="14 2 14 8 20 8"/>
                   <line x1="16" y1="13" x2="8" y2="13"/>
@@ -359,7 +314,7 @@
                   <polyline points="10 9 9 9 8 9"/>
                 </svg>
               </div>
-              <span class="pipe-node__label">Scorecard</span>
+              <span class="pipe-node__label">05 // AUDIT REPORT</span>
             </div>
           </div>
         </div>
@@ -369,43 +324,42 @@
       <section class="section" id="methodology" aria-labelledby="method-heading"
                style="padding-top:0; background: var(--c-bg-deepest);">
         <div class="container">
-          <h2 class="section__heading reveal" id="method-heading">Evaluation Methodology</h2>
+          <h2 class="section__heading reveal" id="method-heading">Audit Methodology &amp; Specifications</h2>
           <p class="section__sub reveal">
-            Understand the difference between deterministic rules and AI advisory verdicts.
+            Transparent distinction between mathematical/verifiable rules and advisory open-weight machine assessments.
           </p>
 
           <div class="methodology-grid">
             <!-- Rules Only card -->
             <div class="method-card method-card--rules reveal">
               <div class="method-card__title">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                      stroke="var(--c-cyan-500)" stroke-width="2" stroke-linecap="round">
                   <polyline points="9 11 12 14 22 4"/>
                   <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                 </svg>
-                Rules Only
+                SPEC-01 // Deterministic Rules Engine
               </div>
               <p class="method-card__desc">
-                Deterministic checks run against the repository's metadata.
-                Results are reproducible, verifiable, and require no AI model.
-                Identical inputs always produce identical outputs.
+                Static assertion checks evaluated against verified repository tree metadata and raw artifacts.
+                Identical inputs produce identical, reproducible findings every time with zero hallucination.
               </p>
               <ul class="method-card__points">
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  Checks for README, license, CI, tests, code of conduct
+                  Inspects README structure, OSI license headers, CI pipelines, test harnesses, code of conduct
                 </li>
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  Verifiable: pass/fail with explicit evidence strings
+                  Binary pass/fail verdicts backed by concrete textual proof
                 </li>
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  No model call — ever
+                  Zero model dependency — always verifiable and offline capable
                 </li>
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  Runs in under a second for most repositories
+                  Sub-second execution profile
                 </li>
               </ul>
             </div>
@@ -413,42 +367,40 @@
             <!-- Rules + Gemma card -->
             <div class="method-card method-card--gemma reveal">
               <div class="method-card__title">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                     stroke="var(--c-violet-500)" stroke-width="2" stroke-linecap="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="var(--c-violet-400)" stroke-width="2" stroke-linecap="round">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
-                Rules + Gemma 4
+                SPEC-02 // Gemma 4 Open-Weight Advisory
               </div>
               <p class="method-card__desc">
-                All deterministic rule checks, plus Gemma 4 (open-weight) AI verdicts
-                for each criterion. AI scores are advisory — they complement, never override,
-                the deterministic results.
+                Executes all deterministic checks, augmented by Gemma 4 (open-weight, 31B instruction-tuned)
+                qualitative evaluation. All AI verdicts are marked advisory and never override deterministic findings.
               </p>
               <ul class="method-card__points">
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  Gemma 4 scores 0–5 per criterion with reasoning and evidence
+                  Scores criteria from 0–5 with structured technical reasoning and actionable recommendations
                 </li>
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  Open-weight model: no closed or proprietary AI
+                  100% open-weight model weights — no closed proprietary black-box APIs
                 </li>
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  AI results may be partial; unscored criteria are clearly marked
+                  Strict schema validation; unscored criteria are explicitly isolated
                 </li>
                 <li class="method-point">
                   <span class="method-point__dot"></span>
-                  Adds 20–60 seconds of evaluation time (model inference)
+                  Advisory layer only — human reviewer holds final authority
                 </li>
               </ul>
             </div>
           </div>
 
           <!-- Advisory note -->
-          <p class="reveal" style="margin-top:var(--sp-6); font-size:var(--fs-sm); color:var(--c-text-tertiary); text-align:center; font-style:italic;">
-            AI verdicts are advisory. Rule results are deterministic and verifiable.
-            Judges should use their own judgment.
+          <p class="reveal" style="margin-top:var(--sp-6); font-size:var(--fs-sm); color:var(--c-text-tertiary); text-align:center;">
+            [AUDIT NOTICE] AI evaluations are advisory. Rule results are deterministic and verifiable.
           </p>
         </div>
       </section>
@@ -650,7 +602,7 @@
         </nav>
 
         <p class="footer-copy">
-          RepoJudge — open-source hackathon evaluation.
+          RepoJudge // Open-source deterministic repository auditor.
         </p>
       </div>
     </footer>

@@ -242,7 +242,7 @@ function setSecurityHeaders(res: Response): void {
 export type CreateAppOptions = {
   deps?: Partial<Deps>;
   rateLimit?: RateLimitOptions;
-  /** Overall timeout for the judge pipeline in ms (default: JUDGE_TIMEOUT_MS env or 60000) */
+  /** Overall timeout for the judge pipeline in ms (default: JUDGE_TIMEOUT_MS env or 120000) */
   timeoutMs?: number;
 };
 
@@ -251,7 +251,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
 
   const timeoutMs =
     options.timeoutMs ??
-    (process.env["JUDGE_TIMEOUT_MS"] ? Number(process.env["JUDGE_TIMEOUT_MS"]) : 60_000);
+    (process.env["JUDGE_TIMEOUT_MS"] ? Number(process.env["JUDGE_TIMEOUT_MS"]) : 120_000);
 
   const rateLimitOpts: RateLimitOptions = options.rateLimit ?? {
     windowMs: 60_000,

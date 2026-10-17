@@ -29,32 +29,32 @@ export const CRITERION_META = {
   clear_problem: {
     title: "Clear Problem Statement",
     desc: "Does the repository clearly articulate the problem being solved?",
-    icon: "💡",
+    icon: "01",
   },
   substantial_work: {
     title: "Substantial Work",
-    desc: "Is there evidence of meaningful development effort during the hackathon?",
-    icon: "⚡",
+    desc: "Is there evidence of meaningful development effort and commit history?",
+    icon: "02",
   },
   easy_to_verify: {
     title: "Easy to Verify",
-    desc: "Can evaluators quickly clone, run, and inspect the project?",
-    icon: "🔍",
+    desc: "Can evaluators clone, run, and inspect reproducible workflows?",
+    icon: "03",
   },
   demo_explanation: {
     title: "Demo & Explanation",
-    desc: "Is there a demo, video, or clear explanation of the working project?",
-    icon: "🎬",
+    desc: "Is there a working demonstration, documentation, or architecture diagram?",
+    icon: "04",
   },
   collaboration: {
-    title: "Collaboration",
-    desc: "Does the team follow open-source best practices and codes of conduct?",
-    icon: "🤝",
+    title: "Collaboration & Community",
+    desc: "Does the repository follow open-source best practices and code standards?",
+    icon: "05",
   },
   submission: {
-    title: "Submission Quality",
-    desc: "Is the repository submission complete, public, and well-structured?",
-    icon: "📦",
+    title: "Submission Integrity",
+    desc: "Is the repository public, well-structured, and verified?",
+    icon: "06",
   },
 };
 
@@ -72,7 +72,7 @@ export const SAMPLES = {
   },
 };
 
-export const CLIENT_TIMEOUT_MS = 90_000;
+export const CLIENT_TIMEOUT_MS = 120_000;
 
 // ============================================================
 // § STATE MACHINE
